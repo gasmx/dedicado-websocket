@@ -1,0 +1,7 @@
+<script type="text/javascript">
+	var ws = new WebSocket('ws://192.168.25.22');
+	ws.addEventListener("message", function(e) {
+	    console.log(e);
+	    ws.send(e.data + ' returned');
+	});
+</script>
