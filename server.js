@@ -58,8 +58,24 @@ wsServer.on('request', function(request) {
         //     connection.sendBytes(message.binaryData);
         // }
     });
+
     connection.on('close', function(reasonCode, description) {
         delete clients[id];
         console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
     });
 });
+
+wsServer.on('sync', function(msg) {
+    console.log('Hora de sincronizar!');
+
+    for(var i in clients){
+        clients[i].sendUTF(msg);
+    }
+});
+
+/*  Dispara um evento de sync após 15 segundos,
+    isto pode ser usado para disparar um evento do websocket ao acessar
+    uma rota através da API */
+setTimeout(function() {
+   wsServer.emit('sync', 'mensagem do hehe');
+}, 15000);
