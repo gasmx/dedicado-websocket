@@ -84,7 +84,7 @@ var webport = process.env.PORT || 4000;
 var router = express.Router();
 
 var emitir = function(req, res, next){
-  wsServer.emit('sync', JSON.stringfy(req.body));
+  wsServer.emit('sync', JSON.stringify(req.body));
   next();
 }
 
