@@ -1,8 +1,8 @@
 var http = require('http');
 var server = http.createServer((request, response) => {});
 
-server.listen(80, () => {
-    console.log((new Date()) + ' Server is listening on port 80');
+server.listen(4555, () => {
+    console.log((new Date()) + ' Server is listening on port 4555');
 });
 
 var WebSocketServer = require('websocket').server;
@@ -66,7 +66,7 @@ wsServer.on('request', function(request) {
 });
 
 wsServer.on('sync', function(msg) {
-    console.log('Hora de sincronizar!');
+    console.log('Notificando clientes que irão sincronizar.');
 
     for(var i in clients){
         clients[i].sendUTF(msg);
@@ -76,6 +76,43 @@ wsServer.on('sync', function(msg) {
 /*  Dispara um evento de sync após 15 segundos,
     isto pode ser usado para disparar um evento do websocket ao acessar
     uma rota através da API */
-setTimeout(function() {
-   wsServer.emit('sync', 'mensagem do hehe');
-}, 15000);
+// setTimeout(function() {
+//    wsServer.emit('sync', 'Mensagem enviada pelo setTimeOut');
+// }, 10000);
+
+/* ================ */
+
+var express = require('express'),
+    app = express()
+    bodyParser = require('body-parser');
+
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
+var port = process.env.PORT || 80;
+var router = express.Router();
+
+var emitir = function(req, res, next){
+  wsServer.emit('sync', 'Mensagem enviada pela rota acessada!');
+  next();
+}
+
+app.listen(port);
+
+app.use(emitir);
+
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+
+app.use('/api', router);
+
+router.route('/sincronizar')
+  .get(function(req, res){
+    res.json({message: "Há registros para sincronizar."});
+  });
+
+
+console.log('Conectado a porta ' + port);

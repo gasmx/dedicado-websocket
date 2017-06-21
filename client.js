@@ -16,9 +16,9 @@ client.on('connect', function(connection) {
     });
     connection.on('message', function(message) {
         if (message.type === 'utf8') {
-            console.log("Received: '" + message.utf8Data + "'");
+            console.log("Recebido: '" + message.utf8Data + "'");
         }
     });
 });
 
-client.connect('ws://192.168.25.22');
+client.connect('ws://192.168.25.22:4555');
