@@ -1,8 +1,9 @@
 var http = require('http');
 var server = http.createServer((request, response) => {});
+var socketport = process.env.PORT || 5000;
 
-server.listen(4555, () => {
-    console.log((new Date()) + ' Server is listening on port 4555');
+server.listen(socketport, () => {
+    console.log((new Date()) + ' Socket Server em pé na porta '+ socketport);
 });
 
 var WebSocketServer = require('websocket').server;
@@ -11,8 +12,18 @@ wsServer = new WebSocketServer({
 });
 
 function originIsAllowed(origin) {
-  // put logic here to detect whether the specified origin is allowed. 
+  // put logic here to detect whether the specified origin is allowed.
   return true;
+}
+
+function sendMessageToConnectedClients(clients, message, sender = null) {
+  // Envia a mensagem para todos os clientes, exceto o remetente
+  for (var i in clients){
+     if (null != sender && (sender.remoteAddress == clients[i].remoteAddress)) {
+        continue;
+     }
+     clients[i].send(message.data);
+  }
 }
 
 var count = 0;
@@ -20,12 +31,12 @@ var clients = {};
 
 wsServer.on('request', function(request) {
     if (!originIsAllowed(request.origin)) {
-      // Make sure we only accept requests from an allowed origin 
+      // Make sure we only accept requests from an allowed origin
       request.reject();
       console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
       return;
     }
-    
+
     // var connection = request.accept('echo-protocol', request.origin);
     var connection = request.accept(null, request.origin);
 
@@ -34,53 +45,33 @@ wsServer.on('request', function(request) {
     // Store the connection method so we can loop through & contact all clients
     clients[id] = connection;
 
-    console.log((new Date()) + ' Connection accepted [' + id + ']');
+    console.log((new Date()) + ' Connection accepted. ID: '+ id +' [' + clients[id].remoteAddress + '].');
 
     connection.on('message', function(message) {
-    	// The string message that was sent to us
-	    var msgString = message.utf8Data;
+      if (message.type === 'utf8') {
+          // console.log('Received Message: ' + message.utf8Data);
+          message.data = message.utf8Data;
+      } else if (message.type === 'binary') {
+          // console.log('Received Binary Message of ' + message.binaryData.length + ' bytes');
+          message.data = message.utf8Data.length;
+      }
 
-	    // Loop through all clients
-	    for(var i in clients){
-	    	if (i == id) {
-	    		continue;
-	    	}
-	        // Send a message to the client with the message
-	        clients[i].sendUTF(msgString);
-	    }
-
-        // if (message.type === 'utf8') {
-        //     console.log('Received Message: ' + message.utf8Data);
-        //     connection.sendUTF(message.utf8Data);
-        // }
-        // else if (message.type === 'binary') {
-        //     console.log('Received Binary Message of ' + message.binaryData.length + ' bytes');
-        //     connection.sendBytes(message.binaryData);
-        // }
+      sendMessageToConnectedClients(clients, message, clients[id]);
     });
 
     connection.on('close', function(reasonCode, description) {
         delete clients[id];
-        console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+        console.log((new Date()) + ' Connection closed. ID: '+ id +' [' + connection.remoteAddress + '].');
     });
 });
 
-wsServer.on('sync', function(msg) {
-    console.log('Notificando clientes que irão sincronizar.');
-
-    for(var i in clients){
-        clients[i].sendUTF(msg);
-    }
+wsServer.on('sync', function(data) {
+    // console.log('Notificando clientes que irão sincronizar.');
+    let message = { data: data };
+    sendMessageToConnectedClients(clients, message);
 });
 
-/*  Dispara um evento de sync após 15 segundos,
-    isto pode ser usado para disparar um evento do websocket ao acessar
-    uma rota através da API */
-// setTimeout(function() {
-//    wsServer.emit('sync', 'Mensagem enviada pelo setTimeOut');
-// }, 10000);
-
-/* ================ */
+/* ============================================================ */
 
 var express = require('express'),
     app = express()
@@ -89,15 +80,15 @@ var express = require('express'),
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-var port = process.env.PORT || 80;
+var webport = process.env.PORT || 4000;
 var router = express.Router();
 
 var emitir = function(req, res, next){
-  wsServer.emit('sync', 'Mensagem enviada pela rota acessada!');
+  wsServer.emit('sync', req.body);
   next();
 }
 
-app.listen(port);
+app.listen(webport);
 
 app.use(emitir);
 
@@ -110,9 +101,8 @@ app.use(function(req, res, next) {
 app.use('/api', router);
 
 router.route('/sincronizar')
-  .get(function(req, res){
-    res.json({message: "Há registros para sincronizar."});
+  .post(function(req, res){
+    res.json({message: "Notificação enviada.."});
   });
 
-
-console.log('Conectado a porta ' + port);
+console.log((new Date()) + ' Web Server em pé na porta ' + webport);
