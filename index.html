@@ -1,7 +1,6 @@
 <script type="text/javascript">
-	var ws = new WebSocket('ws://192.168.25.22');
+	var ws = new WebSocket('ws://34.212.9.57:5000');
 	ws.addEventListener("message", function(e) {
-	    console.log(e);
-	    ws.send(e.data + ' returned');
+	    console.log(e.data);
 	});
 </script>
