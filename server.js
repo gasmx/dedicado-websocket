@@ -19,7 +19,7 @@ function originIsAllowed(origin) {
 function sendMessageToConnectedClients(clients, message, sender = null) {
   // Envia a mensagem para todos os clientes, exceto o remetente
   for (var i in clients){
-     if (null != sender && (sender.remoteAddress == clients[i].remoteAddress)) {
+     if (null != sender && sender == i) {
         continue;
      }
      clients[i].send(message.data);
@@ -56,7 +56,7 @@ wsServer.on('request', function(request) {
           message.data = message.utf8Data.length;
       }
 
-      sendMessageToConnectedClients(clients, message, clients[id]);
+      sendMessageToConnectedClients(clients, message, id);
     });
 
     connection.on('close', function(reasonCode, description) {
